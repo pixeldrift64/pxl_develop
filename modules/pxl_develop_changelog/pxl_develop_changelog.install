@@ -1,0 +1,46 @@
+<?php
+/**
+ * Implements hook_schema().
+ *
+ * This creates the pxl_develop_changelog table in the database on install
+ *
+ */
+function pxl_develop_changelog_schema() {
+  $schema = array();
+
+  $schema['pxl_develop_changelog'] = array(
+    'description' => 'Development Changelog from PXL Develop Module',
+    'fields' => array(
+      'id' => array(
+        'description' => 'id',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'description' => 'The primary identifier for a user',
+        'type' => 'int',
+        'not null' => TRUE
+      ),
+      'name' => array(
+        'description' => 'User inputted name for log entry.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'date' => array(
+        'description' => 'Unix timestamp for log entry.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'notes' => array(
+        'description' => 'User submitted log entry notes.',
+        'type' => 'text',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('id')
+  );
+
+  return $schema;
+}

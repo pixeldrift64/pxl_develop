@@ -1,0 +1,230 @@
+/**
+ * CSS for styling PXL Develop
+ * Some style is set through the admin settings for the module!
+ */
+
+#pxl_dev_msg * {
+  font-family: 'Oxygen',sans-serif;
+  -webkit-box-sizing: initial;
+  -moz-box-sizing: initial;
+  box-sizing: initial;
+}
+
+#pxl_dev_msg {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  background-color: #333;
+  font-size: 15px;
+  font-family: 'Oxygen',sans-serif;
+  width: 100%;
+  height: 21px;
+  transition: 1s;
+  z-index: 9999999999999;
+}
+
+#pxl_dev_msg ul.dev_msg_carousel {
+  margin: 0;
+  padding: 0 0 0 5px;
+  position: absolute;
+}
+
+#pxl_dev_msg ul.dev_msg_carousel li {
+  list-style-type: none;
+}
+
+#pxl_dev_msg p {
+  margin: 0;
+  padding: 1px 0 2px;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+#pxl_dev_msg.open {
+  height: 400px;
+}
+
+#pxl_dev_msg.open span.pxl_dev_expand,
+#pxl_dev_msg.open span.pxl_dev_close {
+  transition: 1s;
+  position: fixed;
+  height: 21px;
+  bottom: 378px;
+}
+
+#pxl_dev_msg.closed span.pxl_dev_expand,
+#pxl_dev_msg.closed span.pxl_dev_close {
+    transition: 1s!important;
+}
+
+#pxl_dev_log .form-item {
+  margin: 0;
+}
+
+#pxl_dev_log {
+  display: none;
+  width: 100%;
+  height: 100%;
+  transition: 1s fade;
+  border-top: 1px solid #fff;
+}
+
+#pxl_dev_log label {
+  margin-top: 10px;
+}
+
+#pxl_dev_msg.open #pxl_dev_log {
+  display: block;
+}
+
+#pxl_dev_log h1 {
+  margin-top: 0;
+  font-family: 'Oxygen',sans-serif;
+  font-size: 21px;
+}
+
+#pxl_dev_log #edit-submit--2 {
+  margin-top: 10px;
+}
+
+#edit-pxl-develop-changelog-name {
+  width: 100%;
+  margin-bottom: 15px!important;
+}
+
+#edit-pxl-develop-changelog-notes {
+  height: 144px;
+}
+
+#edit-pxl-develop-changelog-name,#edit-pxl-develop-changelog-notes {
+  background-color: #eee;
+  opacity: .7;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  position: initial;
+  border: 0;
+}
+
+#edit-pxl-develop-changelog-name {
+  height: 30px;
+  font-size: 20px;
+}
+
+#pxl_dev_msg #edit-submit--2 {
+  border: 0;
+  border-radius: 0;
+  width: 90px;
+  height: 35px;
+  font-size: 19px;
+  padding: 0;
+}
+
+#pxl_dev_msg .form-textarea-wrapper {
+  width: 100%;
+}
+
+#pxl_dev_msg .button.form-submit {
+  margin-top: 15px;
+}
+
+.dev_msg_note {
+  height: 18px;
+  overflow: hidden;
+}
+
+.dev_msg_note p {
+  font-size: 14px;
+  line-height: 22px!important;
+}
+
+.pxl_dev_log_form {
+  width: 24%;
+  height: 93%;
+  float: left;
+  padding: .5%;
+}
+
+.pxl_dev_log_messages {
+  float: left;
+  height: 94%;
+  width: 74%;
+  padding: .5%;
+  overflow-y: scroll;
+}
+
+.pxl_dev_log_msg {
+  width: 100%;
+  transition: 1s;
+}
+
+a.pxl_dev_changelog_viewall {
+  float: right;
+  text-decoration: underline !important;
+  font-weight: 700;
+}
+
+th.pxl_changelog_table_notes {
+  width: 50%;
+}
+
+p.pxl_dev_log_msg_name {
+  width: 100%;
+  float: left;
+  clear: both;
+  height: 16px;
+  font-weight: 700;
+}
+
+p.pxl_dev_log_msg_date {
+  width: 100%;
+  float: left;
+  clear: both;
+  font-size: 11px !important;
+  margin-top: -4px !important;
+}
+
+p.pxl_dev_log_msg_body {
+  float: right;
+  width: 100%;
+  top: -2px;
+  position: relative;
+  line-height: 16px!important;
+  margin-bottom: 8px !important;
+}
+
+p.dev_msg_note {
+  text-align: center;
+}
+
+span.pxl_dev_expand {
+  position: fixed;
+  right: 30px;
+  bottom: 0;
+  cursor: pointer;
+  padding: 0 10px;
+  font-weight: 700;
+  border-right: 1px solid #fff;
+  border-left: 1px solid #fff;
+  height: 21px;
+}
+
+span.pxl_dev_close {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  cursor: pointer;
+  padding: 0 10px;
+  font-weight: 700;
+  height: 21px;
+}
+
+.page-admin-config-pxl-develop-changelog textarea {
+  width: 100%;
+  border: 1px solid #ccc;
+  height: 73px;
+}
+
+.page-admin-config-pxl-develop-changelog .form-submit {
+  margin: 0;
+}

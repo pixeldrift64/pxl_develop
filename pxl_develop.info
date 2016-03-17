@@ -1,0 +1,12 @@
+name = PXL Develop
+description = Module to provide tools for development sites
+core = 7.x
+
+; Information added by Drupal.org packaging script on 2014-10-18
+version = "7.x-1.0"
+core = "7.x"
+project = "pxl_develop"
+package = "Pxl Develop"
+datestamp = "1413658731"
+
+configure = admin/config/pxl_develop

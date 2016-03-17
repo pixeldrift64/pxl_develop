@@ -1,0 +1,427 @@
+<?php
+
+/**
+ * @file
+ * PXL Develop Changelog module
+ *
+ * PXL Develop Changelog functions. Adds a banner with development information
+ * to the site, and a changelog that developers can add notes to in order to
+ * keep track of site changes
+ *
+ * Don't you dare hack my code
+ *
+ * ~ Don't believe the hype ~
+ * by James Mayell
+ *
+ */
+
+/**
+ * Implements hook_permission()
+ */
+function pxl_develop_changelog_permission() {
+
+  return array(
+    'access pxl_develop banner' => array(
+      'title' => 'Access the Pxl Develop Banner',
+      'description' => 'Access the Development banner and add entries to the changelog',
+    ),
+    'access pxl_develop changelog' => array(
+      'title' => 'View the Pxl Develop Changelog in the admin area.',
+      'description' => 'View entries to the site changelog from the back end',
+    )
+  );
+
+}
+
+/**
+ * Implements hook_menu().
+ */
+function pxl_develop_changelog_menu() {
+
+  $items['admin/config/pxl_develop/changelog'] = array(
+    'title' => 'PXL Develop Changelog',
+    'page callback' => 'pxl_develop_changelog_page',
+    'access arguments' => array('access pxl_develop changelog'),
+    'type' => MENU_LOCAL_ACTION,
+  );
+
+  $items['pxl_develop/changelog-post'] = array(
+    'page callback' => 'pxl_develop_changelog_post',
+    'access arguments' => array('access pxl_develop changelog'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['pxl_develop/changelog/update'] = array(
+    'page callback' => 'pxl_develop_changelog_update',
+    'access arguments' => array('access pxl_develop changelog'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['pxl_develop/changelog/delete'] = array(
+    'page callback' => 'pxl_develop_changelog_delete',
+    'access arguments' => array('access pxl_develop changelog'),
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+
+}
+
+/**
+ * Implements hook_theme().
+ */
+function pxl_develop_changelog_theme() {
+  $themes = array();
+
+  $themes['pxl_dev_msg'] = array(
+    'path' => drupal_get_path('module', 'pxl_develop_changelog') .'/templates',
+    'template' => 'pxl_dev_msg',
+    'variables' => array(
+      'dev_mode' => null,
+      'bannercolour' => null,
+      'fontcolour' => null,
+      'version' => null,
+      'phpver' => null,
+      'docroot' => null,
+      'host' => null,
+      'theme' => null,
+      'themepath' => null,
+      'cronlast' => null,
+      'dev_bots' => null,
+      'dev_cache' => null,
+      'dev_mail' => null,
+    ),
+    'type' => 'module',
+  );
+
+  $themes['pxl_dev_changelog_page'] = array(
+    'path' => drupal_get_path('module', 'pxl_develop_changelog') .'/templates',
+    'template' => 'pxl_dev_changelog_page',
+    'variables' => array(
+      'results' => null,
+      'count' => null,
+    ),
+  );
+
+
+  return $themes;
+
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter()
+ *
+ * Instead of creating a seperate settings page for the sub module, we can
+ * use this form alter to add some settings to the main PXL Develop form, which
+ * makes things a lot easier.
+ *
+ */
+function pxl_develop_changelog_form_pxl_develop_settings_form_alter(&$form, &$form_state, $form_id) {
+
+  $form['pxl_dev_changelog'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('PXL Changelog Settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+
+  $form['pxl_dev_changelog']['pxl_changelog_banner_enabled'] = array(
+    '#title' => 'Enable banner?',
+    '#type' => 'radios',
+    '#description' => 'Should the PXL Develop Banner and Changelog be enabled?',
+    '#options' => array(
+      1 => t('Enabled'),
+      0 => t('Disabled'),
+    ),
+    '#default_value' => variable_get('pxl_changelog_banner_enabled',1),
+  );
+
+  $form['pxl_dev_changelog']['pxl_changelog_banner_colour'] = array(
+    '#title' => 'Banner Colour',
+    '#type' => 'textfield',
+    '#description' => t('Enter a HEX code for the banner and message background colour.'),
+    '#default_value' => variable_get('pxl_changelog_banner_colour', '#000'),
+  );
+
+  $form['pxl_dev_changelog']['pxl_changelog_font_colour'] = array(
+    '#title' => 'Font Colour',
+    '#type' => 'textfield',
+    '#description' => t('Enter a HEX code for the banner and message font colour.'),
+    '#default_value' => variable_get('pxl_changelog_font_colour', '#fff'),
+  );
+
+  return $form;
+
+
+}
+
+/**
+ * Implements hook_page_build().
+ */
+function pxl_develop_page_build(&$page) {
+
+
+  //Check that the module and banner is enabled
+  $moduleEnabled = variable_get('pxl_develop_enabled',1);
+  $bannerEnabled = variable_get('pxl_changelog_banner_enabled',1);
+
+  if($moduleEnabled && $bannerEnabled) {
+
+    //Check that the user has access to view the development banner
+    if(user_access('access pxl_develop banner')) {
+
+      //Inject the development banner into page_top
+      $page['page_top']['pxl_develop_banner'] = array(
+        '#type' => 'markup',
+        '#markup' => theme('pxl_dev_msg',get_stats()),
+      );
+
+    }
+
+  }
+
+}
+
+/**
+ * Generates a form for adding entries to the changelog
+ *
+ * @return array $form
+ *   An array containing the form data, with these keys
+ *     - pxl_develop_changelog_name: a text field for the user's full Name
+ *     - pxl_develop_changelog_notes: a textarea field for the user's changelog Notes
+ *     - pxl_develop_changelog_date: a hidden field containing the current unix timestamp
+ *     - submit: Submit button for the form
+ */
+function pxl_develop_changelog_add_form($form, &$form_state) {
+
+  $form['pxl_develop_changelog_name'] = array(
+    '#title' => 'Name',
+    '#type' => 'textfield',
+  );
+
+  $form['pxl_develop_changelog_notes'] = array(
+    '#title' => 'Notes',
+    '#type' => 'textarea',
+  );
+
+  $form['pxl_develop_changelog_date'] = array(
+    '#type' => 'hidden',
+    '#default_value' => time(),
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Submit',
+  );
+
+  return $form;
+
+}
+
+/**
+ * Generates page for the changelog
+ *
+ * Prepares data from the changelog in the database, then
+ * passes it to the pxl_dev_chanelog_page template for markup
+ *
+ * @return theme()
+ *  Theme function passing through data for page template
+ */
+function pxl_develop_changelog_page() {
+
+  //How many changelog items to display per page
+  $page_limit = 15;
+
+  //Fetch data from database
+  $result = db_select('pxl_develop_changelog', 'c')
+            ->fields('c')
+            ->orderBy('id', 'DESC')
+            ->extend('PagerDefault')->limit($page_limit)
+            ->execute();
+
+  //row count and results from query
+  $count = $result->rowCount();
+  $results = $result->fetchAll();
+
+  //return the theme function passing through the data
+  return theme('pxl_dev_changelog_page', array(
+    'results' => $results,
+    'count' => $count,
+  ));
+
+}
+
+/**
+ * Changelog entry update function
+ *
+ * This functyion processes requests from jQuery to update existing entries from
+ * the changelog table on the administration page.
+ *
+ * Passes back the json output to our script
+ */
+function pxl_develop_changelog_update() {
+
+  //Pull POST values through from jQuery script
+  $json = array();
+  $json['post'] = $_POST;
+
+  //Run update query on database
+  $result = db_update('pxl_develop_changelog')
+            ->fields(array(
+              'notes' => $_POST['notes'],
+            ))
+            ->condition('id', $_POST['id'])
+            ->execute();
+
+  //output Drupal's json output
+  drupal_json_output($json);
+
+}
+
+/**
+ * Changelog entry deletion function
+ *
+ * This function processes requests from jQuery
+ * to delete entries from the changelog table
+ * on the administration page.
+ *
+ * Passes back the json output to our script
+ */
+function pxl_develop_changelog_delete() {
+
+  //Pull POST values through from jQuery script
+  $json = array();
+  $json['post'] = $_POST;
+
+  //Run deletion of data from database
+  $result = db_delete('pxl_develop_changelog')
+            ->condition('id', $_POST['id'])
+            ->execute();
+
+  //output Drupal's json output
+  drupal_json_output($json);
+
+}
+
+/**
+ * Changelog entry retrieval function
+ *
+ * This function is called through in the changelog banner that appears on every
+ * site page, and simply returns all the entries to the template to be
+ * processed
+ *
+ * @param int $start
+ *   Number of entries to offset starting point at for paging,
+ *   default of 0
+ *
+ * @param int $limit
+ *   Total number of entries to display on one page, default 50
+ *
+ * @return array
+ *   An array containing all the fetched data for the selected changelog entries
+ *
+ */
+function pxl_develop_changelog_get_entries($start = 0, $limit = 50) {
+
+  //Run a query and store results in this variable
+  $results = db_select('pxl_develop_changelog', 'c')
+              ->fields('c')
+              ->orderBy('id', 'DESC')
+              ->range($start, $limit)
+              ->execute()
+              ->fetchAll();
+
+  //Return the query results
+  return $results;
+
+}
+
+/**
+ * Changelog entry insertion function
+ *
+ * This function serves as a page handler for json to be posted through and for
+ * changelog entries to be added to the database by drupal. It is not supposed
+ * to be accessed by users, only jQuery, so for that reason this function only
+ * runs its code if POST variables are set and returns drupal_access_denied to
+ * anyone trying to access the code.
+ *
+ * @return function
+ *   Returns a drupal_access_denied() function if no POST variables are set to
+ *   prevent any users from viewing / accessing this page.
+ *
+ */
+function pxl_develop_changelog_post() {
+
+  //Load the current user info
+  global $user;
+
+  //if POST variables are set
+  if(isset($_POST['name'])) {
+
+  //Retrieve the POST variables and assign json variables
+  $json = array();
+  $json['post'] = $_POST;
+
+  $json['time'] = time();
+  $json['date'] = date('jS M \'y - g:ia', $json['time']);
+  $json['name'] = $_POST['name'];
+  $json['notes'] = $_POST['notes'];
+  $json['uid'] = $user->uid;
+
+  try {
+
+    //Insert a changelog entry to the database using the collected values
+    $id = db_insert('pxl_develop_changelog')
+      ->fields(array(
+        'uid' => $json['uid'],
+        'name' => $json['name'],
+        'date' => $json['time'],
+        'notes' => $json['notes'],
+      ))
+      ->execute();
+
+  } catch(PDOException $e) {
+
+    //print out error messages
+    print $e->getMessage(); die;
+  }
+
+  //Pass through Drupal's json output
+  drupal_json_output($json);
+
+} else {
+
+  //if no POST data is set and a user is trying to access this page through the
+  //browser, block them with drupal_access_denied()
+  return drupal_access_denied();
+}
+
+}
+
+function get_stats() {
+
+  global $theme;
+  global $base_path;
+
+  //Set up some variables for the dev_msg template using ternary operators
+  $dev_bots = (variable_get('pxl_develop_disable_bots',0) == 1) ? 'Disallowed' : 'Allowed';
+  $dev_cache = (variable_get('pxl_develop_disable_cache',0) == 1) ? 'Disabled' : 'Enabled - Normal';
+  $dev_mail = (variable_get('pxl_develop_disable_mail',0) == 1) ? 'Disabled' : 'Enabled - Normal';
+
+  return array(
+    'dev_mode' => variable_get('pxl_develop_mode',0),
+    'bannercolour' => variable_get('pxl_changelog_banner_colour', '#000'),
+    'fontcolour' => variable_get('pxl_changelog_font_colour', '#fff'),
+    'version' => VERSION,
+    'phpver' => phpversion(),
+    'docroot' => DRUPAL_ROOT,
+    'host' => gethostbyaddr($_SERVER['SERVER_ADDR']),
+    'theme' => $theme,
+    'themepath' => path_to_theme(),
+    'cronlast' => variable_get('cron_last'),
+    'dev_bots' => $dev_bots,
+    'dev_cache' => $dev_cache,
+    'dev_mail' => $dev_mail,
+  );
+
+}

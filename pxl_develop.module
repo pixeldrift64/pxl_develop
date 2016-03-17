@@ -1,0 +1,292 @@
+<?php
+
+/**
+ * @file
+ * PXL Develop module
+ *
+ * PXL develop module functions. Adds a bunch of handy functionality for both
+ * development sites and live sites including cache handling, disabling robots,
+ * disabling drupal_mail and implementing a changelog system to keep track of
+ * all changes made to a site by developers.
+ *
+ * Don't you dare hack my code
+ *
+ * ~ Don't believe the hype ~
+ * by James Mayell
+ *
+ */
+
+/**
+ * Implements hook_permission()
+ */
+function pxl_develop_permission() {
+
+  return array(
+    'administer pxl_develop settings' => array(
+      'title' => 'Administer Pxl Develop Settings',
+      'description' => 'View and change system settings for the Pxl Develop module'
+    )
+  );
+
+}
+
+/**
+ * Implements hook_menu().
+ */
+function pxl_develop_menu() {
+
+  $items['admin/config/pxl_develop/settings'] = array(
+    'title' => 'PXL Develop Settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('pxl_develop_settings_form'),
+    'access arguments' => array('administer pxl_develop settings'),
+    'type' => MENU_LOCAL_ACTION,
+  );
+
+  return $items;
+
+}
+
+/**
+ * Generates a system settings form
+ *
+ * @return array $form
+ *   An array containing the form data, with these keys
+ *    - pxl_develop_enabled: radio buttons with a boolean for if the module
+  *       should be active or not
+ *    - pxl_develop_mode: select box with a boolean for which mode the module
+ *        should be running under, either development or live mode.
+ *    - pxl_dev_mode: a field group for development mode related settings
+ *    - pxl_develop_disable_bots: radio buttons with a boolean for if search
+ *        bots should be blocked from viewing and indexing the site
+ *    - pxl_develop_disable_cache: radio buttons with a boolean for if the cache
+ *        should be disabled site wide.
+ *    - pxl_develop_disable_mail: radio buttons with a boolean for if all drupal
+ *        mail sending should be disabled on the site.
+ */
+function pxl_develop_settings_form($form, &$form_state) {
+
+  $form['pxl_develop_enabled'] = array(
+    '#title' => 'Enable Module?',
+    '#type' => 'radios',
+    '#description' => 'Should the PXL Develop Module be enabled?',
+    '#options' => array(
+      1 => t('Enabled'),
+      0 => t('Disabled'),
+    ),
+    '#default_value' => variable_get('pxl_develop_enabled',1),
+  );
+
+  $form['pxl_develop_mode'] = array(
+    '#title' => 'Mode',
+    '#type' => 'select',
+    '#description' => 'Mode the module is running in',
+    '#options' => array(
+      0 => t('Development Mode'),
+      1 => t('Live Mode'),
+    ),
+    '#default_value' => variable_get('pxl_develop_mode',0),
+  );
+
+  $form['pxl_dev_mode'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Development Mode Settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+
+  $form['pxl_dev_mode']['pxl_develop_disable_bots'] = array(
+    '#title' => 'Block Search Crawlers?',
+    '#type' => 'radios',
+    '#description' => 'Should Search crawlers and bots be blocked from indexing the site on google and other search engines?',
+    '#options' => array(
+      1 => t('Enabled'),
+      0 => t('Disabled'),
+    ),
+    '#default_value' => variable_get('pxl_develop_disable_bots',0),
+  );
+
+  $form['pxl_dev_mode']['pxl_develop_disable_cache'] = array(
+    '#title' => 'Remove all caching?',
+    '#type' => 'radios',
+    '#description' => 'Enabling this will keep a copy of your current cache settings, then turn it all off. Disabling will restore previous config.',
+    '#options' => array(
+      1 => t('Enabled'),
+      0 => t('Disabled'),
+    ),
+    '#default_value' => variable_get('pxl_develop_disable_cache',0),
+  );
+
+  $form['pxl_dev_mode']['pxl_develop_disable_mail'] = array(
+    '#title' => 'Disable Site Mail?',
+    '#type' => 'radios',
+    '#description' => 'This will disable mail from being sent through Drupal. Blocked mail will be logged in watchdog',
+    '#options' => array(
+      1 => t('Enabled'),
+      0 => t('Disabled'),
+    ),
+    '#default_value' => variable_get('pxl_develop_disable_mail',0),
+  );
+
+  return system_settings_form($form);
+
+}
+
+
+/**
+ * Validation handler for pxl_develop_settings_form().
+ */
+function pxl_develop_settings_form_validate($form, &$form_state) {
+
+  //Check for changes in the caching settings
+  $disableCache = variable_get('pxl_develop_disable_cache',0);
+  $disableCacheSet = $form_state['values']['pxl_develop_disable_cache'];
+
+  //If change was made to the setting
+  if($disableCache != $disableCacheSet) {
+
+    //If cache disable is being turned on
+    if($disableCacheSet == 1) {
+
+      //Take backups of current caching values
+      $dr_cache = variable_get('cache', 0);
+      $dr_preprocess_css = variable_get('preprocess_css', 0);
+      $dr_preprocess_js = variable_get('preprocess_js', 0);
+
+      variable_set('pxl_dr_cache', $dr_cache);
+      variable_set('pxl_dr_preprocess_css', $dr_preprocess_css);
+      variable_set('pxl_dr_preprocess_js', $dr_preprocess_js);
+
+      //Disable caching
+      variable_set('cache', 0);
+      variable_set('preprocess_css', 0);
+      variable_set('preprocess_js', 0);
+
+      drupal_set_message('Performance Caches have been removed. The previous cache settings have been kept and will be restored when Remove Caching is Disabled.');
+
+    }
+
+    //If cache disable is being turned off
+    if($disableCacheSet == 0) {
+
+      //Load backup values of previous caching values
+      $dr_cache = variable_get('pxl_dr_cache', 0);
+      $dr_preprocess_css = variable_get('pxl_dr_preprocess_css', 0);
+      $dr_preprocess_js = variable_get('pxl_dr_preprocess_js', 0);
+
+      //Restore previous drupal performance configuration
+      variable_set('cache', $dr_cache);
+      variable_set('preprocess_css', $dr_preprocess_css);
+      variable_set('preprocess_js', $dr_preprocess_js);
+
+      drupal_set_message('Performance Caches have been re enabled. The previous cache settings have been restored.');
+
+    }
+
+  }
+
+  //Clear all caches
+  drupal_flush_all_caches();
+
+}
+
+/**
+ * Implements hook_enable()
+ *
+ * Legacy - This function will run on module enable and disable and uninstall
+ * the previous module I created to remove robots from the site if it is running
+ * since this one replaces that functionality
+ *
+ */
+function pxl_develop_enable() {
+
+  //Check if adaptive_devmode module is Installed and Enabled
+  $adaptive_devmode = module_exists('adaptive_devmode');
+  if($adaptive_devmode) {
+    //Disable and uninstall adaptive_devmode module.
+    module_disable(array('adaptive_devmode'));
+    drupal_uninstall_modules(array('adaptive_devmode'));
+  }
+
+}
+
+/**
+ * Implements hook_preprocess_page()
+ */
+function pxl_develop_preprocess_page(&$vars) {
+
+  //Load configuration values
+  $moduleEnabled = variable_get('pxl_develop_enabled',0);
+  $devMode = variable_get('pxl_develop_mode',0);
+  $disableBots = variable_get('pxl_develop_disable_bots', 0);
+
+  //Check configuration settings for meta tag to be added
+  if($moduleEnabled == 1 && $devMode == 0 && $disableBots == 1) {
+
+    //Inject meta tag into page template to prevent bots from viewing the site
+    $element = array(
+    '#tag' => 'meta',
+    '#attributes' => array(
+      'name' => 'robots',
+      'content' => 'NOINDEX, NOFOLLOW',
+      ),
+    );
+    drupal_add_html_head($element, 'noindex');
+
+  }
+
+}
+
+/**
+ * Implements hook_mail_alter().
+ *
+ * If the configuration allows, this funciton will stop all mail from being sent
+ * from drupal_mail(), and keep a watchdog log of all attempted mail sends.
+ *
+ */
+function pxl_develop_mail_alter(&$message) {
+
+  //Check configuration
+  $moduleEnabled = variable_get('pxl_develop_enabled', 0);
+  $devMode = variable_get('pxl_develop_mode',0);
+  $mailDisabled = variable_get('pxl_develop_disable_mail',0);
+
+  //if configuration is correct
+  if($moduleEnabled == 1 && $devMode == 0 && $mailDisabled == 1) {
+
+    //Set message send to false, which prevents mail from being sent
+    $message['send'] = FALSE;
+    watchdog('Dev Site', 'The following email was not sent because of dev site settings: !message', array('!message' => '<pre>' . print_r($message, TRUE) . '</pre>'));
+
+  }
+
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * This form alter prevents the caching options from being set through the normal
+ * performance page, as they have been stored and disabled by this module and
+ * will be restored when the functionality is disabled
+ *
+ */
+function pxl_develop_form_system_performance_settings_alter(&$form, &$form_state, $formid) {
+
+  //Check if the module is enabled & cache off is enabled
+  $moduleEnabled = variable_get('pxl_develop_enabled',0);
+  $devMode = variable_get('pxl_develop_mode',0);
+  $cacheOff = variable_get('pxl_develop_disable_cache',0);
+
+  if($moduleEnabled == 1 && $devMode == 0 && $cacheOff == 1) {
+
+    //Set message for user to explain why they can't edit caching options
+    drupal_set_message(t('Performance caching is currently being disabled via the PXL Develop module. To re-enable, go to the <a href="/admin/config/pxl_develop/settings">module configuration</a>.'), 'warning');
+
+    //Override form to disable form elements
+    $form['caching']['#attributes']['disabled'] = 'true';
+    $form['bandwidth_optimization']['#attributes']['disabled'] = 'true';
+  }
+
+  return $form;
+
+}

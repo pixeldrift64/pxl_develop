@@ -1,0 +1,17 @@
+name = PXL Develop Changelog
+description = PXL Develop sub-module to provide an info banner and changelog functionality to sites
+core = 7.x
+
+; Information added by Drupal.org packaging script on 2014-10-18
+version = "7.x-1.0"
+core = "7.x"
+project = "pxl_develop_changelog"
+package = "Pxl Develop"
+datestamp = "1413658731"
+
+dependencies[] = pxl_develop
+
+stylesheets[all][] = css/pxl_develop.css
+stylesheets[all][] = css/oxygen_font.css
+
+scripts[] = js/pxl_develop.js
