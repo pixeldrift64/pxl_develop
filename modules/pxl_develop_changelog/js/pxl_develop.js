@@ -11,6 +11,18 @@
 jQuery(document).ready(function($) {
 
 /**
+ * Simple escape function to fix XSS vulnerability
+ *
+ * escapes html preventing scripts from being added to messages in changelog
+ *
+ */
+function escapeHtml(unsafe) {
+    return unsafe
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+ }
+
+/**
  * Handles adding new changelog entries without reloading the page
  *
  * This function is triggered when the form submit button is clicked on the
@@ -38,8 +50,8 @@ $("#pxl-develop-changelog-add-form .form-submit").click(function() {
     url: '/pxl_develop/changelog-post',
     type: 'POST',
     data: {
-    name: name,
-    notes: notes
+    name: escapeHtml(name),
+    notes: escapeHtml(notes)
     },
     dataType: 'json',
 
@@ -95,7 +107,7 @@ $(".pxl_dev_changelog_edit").click(function() {
           type: 'POST',
           data: {
             id: id,
-            notes: noteVal
+            notes: escapeHtml(noteVal)
           },
           dataType: 'json',
 

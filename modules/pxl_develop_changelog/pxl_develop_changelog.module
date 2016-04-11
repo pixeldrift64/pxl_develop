@@ -265,10 +265,12 @@ function pxl_develop_changelog_update() {
   $json = array();
   $json['post'] = $_POST;
 
+  $notes = mysql_real_escape_string($_POST['notes']);
+
   //Run update query on database
   $result = db_update('pxl_develop_changelog')
             ->fields(array(
-              'notes' => $_POST['notes'],
+              'notes' => $notes,
             ))
             ->condition('id', $_POST['id'])
             ->execute();
@@ -364,8 +366,10 @@ function pxl_develop_changelog_post() {
 
   $json['time'] = time();
   $json['date'] = date('jS M \'y - g:ia', $json['time']);
-  $json['name'] = $_POST['name'];
-  $json['notes'] = $_POST['notes'];
+
+  //Escape strings for security
+  $json['name'] = mysql_real_escape_string($_POST['name']);
+  $json['notes'] = mysql_real_escape_string($_POST['notes']);
   $json['uid'] = $user->uid;
 
   try {
